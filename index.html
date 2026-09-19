@@ -23,6 +23,28 @@
         <nav class="navigation">
              <ul>
           <li><a href="#aboutMe">About Me</a></li>
+          <button onclick="openLiveOmar()" class="live-btn">
+  <span>📹</span> Live
+</button>
+
+<style>
+.live-btn {
+  background: #2563eb;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.live-btn:hover {
+  background: #1d4ed8;
+  transform: scale(1.05);
+}
+</style>
           <a href="game.html" class="game-link">
   🎮 Play Game
 </a>
@@ -112,7 +134,88 @@
     <footer>
       <p>Built by omar el akhdar</p>
     </footer>
+<!-- واجهة Live Omar -->
+<section id="liveOmarPage" hidden
+  style="background:#111827;color:white;padding:25px;
+  border-radius:18px;text-align:center;">
 
+  <button onclick="closeLiveOmar()"
+    style="float:left;padding:10px 16px;border:0;
+    border-radius:8px;cursor:pointer;">
+    ← رجوع
+  </button>
+
+  <div style="clear:both;"></div>
+
+  <h1>🎥 Live Omar Meet</h1>
+  <p>تواصل مع صحابك بالصوت والصورة</p>
+
+  <button onclick="createOmarMeeting()"
+    style="background:#2563eb;color:white;padding:14px 22px;
+    border:0;border-radius:10px;cursor:pointer;">
+    + إنشاء اجتماع
+  </button>
+
+  <div style="margin-top:25px;">
+    <input id="omarMeetingCode"
+      placeholder="دخل كود الاجتماع"
+      style="padding:13px;border-radius:8px;
+      border:1px solid #ccc;max-width:100%;">
+
+    <button onclick="joinOmarMeeting()"
+      style="background:#16a34a;color:white;padding:13px 20px;
+      border:0;border-radius:8px;cursor:pointer;">
+      انضمام
+    </button>
+  </div>
+
+  <p id="omarMeetingMessage"></p>
+</section>
+
+<script>
+function openLiveOmar() {
+  const live = document.getElementById("liveOmarPage");
+  live.hidden = false;
+
+  // خبي الصفحة الرئيسية إلا كان عندها id="home"
+  const home = document.getElementById("home");
+  if (home) home.hidden = true;
+
+  live.scrollIntoView({ behavior: "smooth" });
+}
+
+function closeLiveOmar() {
+  document.getElementById("liveOmarPage").hidden = true;
+
+  const home = document.getElementById("home");
+  if (home) home.hidden = false;
+}
+
+function createOmarMeeting() {
+  const code = Math.random().toString(36)
+    .substring(2, 8).toUpperCase();
+
+  document.getElementById("omarMeetingCode").value = code;
+  document.getElementById("omarMeetingMessage").textContent =
+    "كود الاجتماع ديالك هو: " + code +
+    " — صيفطو لصحابك باش يدخلو.";
+}
+
+function joinOmarMeeting() {
+  const code = document.getElementById("omarMeetingCode")
+    .value.trim();
+
+  if (!code) {
+    document.getElementById("omarMeetingMessage")
+      .textContent = "دخل كود الاجتماع أولاً.";
+    return;
+  }
+
+  document.getElementById("omarMeetingMessage")
+    .textContent = "الكود: " + code +
+    ". واجهة الانضمام واجدة، وباقي ربط الفيديو والصوت الحقيقيين.";
+}
+</script>
 </body>
 
 </html>
