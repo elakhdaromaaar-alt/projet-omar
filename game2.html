@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Racing | Omar</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #07130f;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  padding: 20px 10px;
+}
+
+h1 {
+  color: #20e0a0;
+  margin-bottom: 5px;
+}
+
+p {
+  color: #b8c9c1;
+}
+
+.game-wrapper {
+  position: relative;
+  width: 360px;
+  max-width: 100%;
+  margin: 20px auto;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  border: 3px solid #20e0a0;
+  border-radius: 12px;
+  background: #333;
+}
+
+#overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.78);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+#overlay h2 {
+  font-size: 30px;
+  color: #20e0a0;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 13px 22px;
+  font-size: 17px;
+  font-weight: bold;
+  cursor: pointer;
+  background: #20e0a0;
+  color: #05271c;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 35px;
+  margin: 15px auto;
+}
+
+.controls button {
+  width: 90px;
+  height: 60px;
+  font-size: 28px;
+  touch-action: none;
+}
+
+.back {
+  display: inline-block;
+  margin: 20px;
+  color: #20e0a0;
+  text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🏎️ Car Racing</h1>
+<p>Use ← → or A / D to move and avoid the traffic!</p>
+
+<div class="game-wrapper">
+
+  <canvas id="game" width="360" height="560"></canvas>
+
+  <div id="overlay">
+    <h2 id="overlayTitle">CAR RACING</h2>
+    <p id="overlayText">Avoid the other cars and beat your score!</p>
+    <button id="startButton">START GAME</button>
+  </div>
+
+</div>
+
+<h2>Score: <span id="score">0</span></h2>
+
+<div class="controls">
+  <button id="left">◀</button>
+  <button id="right">▶</button>
+</div>
+
+<a class="back" href="games.html">← Back to Games</a>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const overlay = document.getElementById("overlay");
+const overlayTitle = document.getElementById("overlayTitle");
+const overlayText = document.getElementById("overlayText");
+const startButton = document.getElementById("startButton");
+const scoreDisplay = document.getElementById("score");
+
+const W = canvas.width;
+const H = canvas.height;
+
+const roadLeft = 45;
+const roadRight = 315;
+
+let player;
+let enemies;
+let score;
+let speed;
+let roadOffset;
+let running = false;
+let animationId = null;
+let lastTime = 0;
+let spawnTimer = 0;
+let keys = { left: false, right: false };
+
+const enemyColors = ["#ff4545", "#ffc928", "#a66bff", "#eeeeee"];
+
+function resetGame() {
+  player = {
+    x: W / 2 - 19,
+    y: H - 105,
+    w: 38,
+    h: 65,
+    speed: 5
+  };
+
+  enemies = [];
+  score = 0;
+  speed = 3;
+  roadOffset = 0;
+  spawnTimer = 0;
+  scoreDisplay.textContent = "0";
+}
+
+function drawCar(x, y, w, h, color, isPlayer = false) {
+  // Wheels
+  ctx.fillStyle = "#111";
+  ctx.fillRect(x - 4, y + 10, 7, 17);
+  ctx.fillRect(x + w - 3, y + 10, 7, 17);
+  ctx.fillRect(x - 4, y + h - 27, 7, 17);
+  ctx.fillRect(x + w - 3, y + h - 27, 7, 17);
+
+  // Body
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+
+  // Windows
+  ctx.fillStyle = "#b9ecf5";
+  ctx.fillRect(x + 6, y + 12, w - 12, 15);
+  ctx.fillRect(x + 6, y + h - 25, w - 12, 12);
+
+  // Bumper
+  ctx.fillStyle = "#222";
+  ctx.fillRect(x + 5, y + 3, w - 10, 5);
+  ctx.fillRect(x + 5, y + h - 8, w - 10, 5);
+
+  // Headlights
+  ctx.fillStyle = isPlayer ? "#fff8a5" : "#ffdddd";
+  ctx.fillRect(x + 4, y + 2, 8, 5);
+  ctx.fillRect(x + w - 12, y + 2, 8, 5);
+}
+
+function drawRoad() {
+  // Grass
+  ctx.fillStyle = "#28723d";
+  ctx.fillRect(0, 0, W, H);
+
+  // Road
+  ctx.fillStyle = "#383838";
+  ctx.fillRect(roadLeft, 0, roadRight - roadLeft, H);
+
+  // Road edges
+  ctx.fillStyle = "#eeeeee";
+  ctx.fillRect(roadLeft, 0, 5, H);
+  ctx.fillRect(roadRight - 5, 0, 5, H);
+
+  // Lane markings
+  ctx.fillStyle = "#f5f5f5";
+
+  for (let y = -40; y < H; y += 100) {
+    const markY = y + roadOffset;
+    ctx.fillRect(132, markY, 5, 48);
+    ctx.fillRect(223, markY, 5, 48);
+  }
+}
+
+function spawnEnemy() {
+  const lanes = [78, 169, 260];
+  const lane = lanes[Math.floor(Math.random() * lanes.length)];
+
+  enemies.push({
+    x: lane - 19,
+    y: -75,
+    w: 38,
+    h: 65,
+    color: enemyColors[
+      Math.floor(Math.random() * enemyColors.length)
+    ]
+  });
+}
+
+function collision(a, b) {
+  const padding = 7;
+
+  return (
+    a.x + padding < b.x + b.w - padding &&
+    a.x + a.w - padding > b.x + padding &&
+    a.y + padding < b.y + b.h - padding &&
+    a.y + a.h - padding > b.y + padding
+  );
+}
+
+function draw() {
+  drawRoad();
+
+  enemies.forEach(car => {
+    drawCar(car.x, car.y, car.w, car.h, car.color);
+  });
+
+  if (player) {
+    drawCar(player.x, player.y, player.w, player.h, "#12c9e8", true);
+  }
+}
+
+function update(delta) {
+  const factor = Math.min(delta / 16.67, 2);
+
+  roadOffset = (roadOffset + speed * factor) % 100;
+
+  if (keys.left) {
+    player.x -= player.speed * factor;
+  }
+
+  if (keys.right) {
+    player.x += player.speed * factor;
+  }
+
+  player.x = Math.max(
+    roadLeft + 10,
+    Math.min(roadRight - player.w - 10, player.x)
+  );
+
+  spawnTimer += delta;
+
+  if (spawnTimer > Math.max(430, 1050 - score * 4)) {
+    spawnEnemy();
+    spawnTimer = 0;
+  }
+
+  enemies.forEach(car => {
+    car.y += speed * factor;
+
+    if (collision(player, car)) {
+      endGame();
+    }
+  });
+
+  enemies = enemies.filter(car => {
+    if (car.y > H) {
+      score++;
+      scoreDisplay.textContent = score;
+      speed = Math.min(8, 3 + score * 0.08);
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function gameLoop(timestamp) {
+  if (!running) return;
+
+  const delta = lastTime ? timestamp - lastTime : 16.67;
+  lastTime = timestamp;
+
+  update(delta);
+  draw();
+
+  if (running) {
+    animationId = requestAnimationFrame(gameLoop);
+  }
+}
+
+function startGame() {
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+  }
+
+  resetGame();
+  running = true;
+  lastTime = 0;
+
+  overlay.style.display = "none";
+
+  animationId = requestAnimationFrame(gameLoop);
+}
+
+function endGame() {
+  if (!running) return;
+
+  running = false;
+  cancelAnimationFrame(animationId);
+
+  overlayTitle.textContent = "GAME OVER";
+  overlayText.textContent = "Your score: " + score;
+  startButton.textContent = "PLAY AGAIN";
+  overlay.style.display = "flex";
+}
+
+startButton.addEventListener("click", startGame);
+
+document.addEventListener("keydown", event => {
+  if (
+    ["ArrowLeft", "ArrowRight", " "].includes(event.key)
+  ) {
+    event.preventDefault();
+  }
+
+  if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+    keys.left = true;
+  }
+
+  if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+    keys.right = true;
+  }
+
+  if (event.key === " " && !running) {
+    startGame();
+  }
+});
+
+document.addEventListener("keyup", event => {
+  if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+    keys.left = false;
+  }
+
+  if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+    keys.right = false;
+  }
+});
+
+function holdButton(buttonId, direction) {
+  const button = document.getElementById(buttonId);
+
+  button.addEventListener("pointerdown", event => {
+    event.preventDefault();
+    keys[direction] = true;
+  });
+
+  ["pointerup", "pointerleave", "pointercancel"].forEach(name => {
+    button.addEventListener(name, () => {
+      keys[direction] = false;
+    });
+  });
+}
+
+holdButton("left", "left");
+holdButton("right", "right");
+
+resetGame();
+draw();
+</script>
+
+</body>
+</html>
