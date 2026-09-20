@@ -27,7 +27,7 @@
 
     .subtitle {
       color: #b8e8d5;
-      margin-bottom: 30px;
+      margin-bottom: 40px;
     }
 
     .games {
@@ -35,7 +35,7 @@
       justify-content: center;
       flex-wrap: wrap;
       gap: 25px;
-      max-width: 900px;
+      max-width: 850px;
       margin: auto;
     }
 
@@ -75,51 +75,10 @@
       padding: 12px 30px;
       border-radius: 10px;
       margin-top: 15px;
-      border: none;
-      cursor: pointer;
-      font-size: 15px;
     }
 
     .play-button:hover {
       background: #42e8b9;
-    }
-
-    .multiplayer {
-      max-width: 650px;
-      margin: 45px auto 20px;
-      padding: 25px;
-      background: #105640;
-      border: 1px solid #24785b;
-      border-radius: 18px;
-    }
-
-    .multiplayer h2 {
-      font-size: 28px;
-    }
-
-    .room-input {
-      width: 100%;
-      max-width: 350px;
-      padding: 14px;
-      margin: 10px auto;
-      display: block;
-      border: 1px solid #42e8b9;
-      border-radius: 10px;
-      background: #063d2e;
-      color: white;
-      font-size: 17px;
-      text-align: center;
-      outline: none;
-    }
-
-    .room-input::placeholder {
-      color: #b8e8d5;
-    }
-
-    .room-message {
-      margin-top: 18px;
-      color: #42e8b9;
-      overflow-wrap: anywhere;
     }
 
     .back {
@@ -127,23 +86,6 @@
       margin-top: 40px;
       color: white;
       text-decoration: none;
-    }
-
-    .note {
-      color: #b8e8d5;
-      font-size: 13px;
-      line-height: 1.6;
-      margin-top: 18px;
-    }
-
-    @media (max-width: 600px) {
-      h1 {
-        font-size: 29px;
-      }
-
-      .multiplayer {
-        padding: 20px 14px;
-      }
     }
   </style>
 </head>
@@ -155,6 +97,7 @@
 
   <div class="games">
 
+    <!-- GAME 1 -->
     <div class="game-card">
       <div class="game-icon">🐦</div>
       <h2>Flappy Bird</h2>
@@ -162,115 +105,17 @@
       <a href="game.html" class="play-button">PLAY NOW</a>
     </div>
 
-    <div class="game-card">
-      <div class="game-icon">🏎️</div>
-      <h2>Car Racing</h2>
-      <p>Drive your car and avoid the traffic!</p>
-      <a href="game2.html" class="play-button">PLAY NOW</a>
-    </div>
+    <!-- GAME 2 -->
+<div class="game-card">
+  <div class="game-icon">🏎️</div>
+  <h2>Car Racing</h2>
+  <p>Drive your car and avoid the traffic!</p>
+  <a href="game2.html" class="play-button">PLAY NOW</a>
+</div>
 
   </div>
 
-  <!-- MULTIPLAYER SECTION -->
-  <section class="multiplayer">
-
-    <h2>👥 Play With Friends</h2>
-    <p class="subtitle">
-      Create a room or enter your friend's room code.
-    </p>
-
-    <button class="play-button" onclick="createRoom()">
-      ➕ CREATE ROOM
-    </button>
-
-    <div id="createdRoom" class="room-message"></div>
-
-    <hr style="border-color:#24785b; margin:25px 0;">
-
-    <h3>🔑 Join a Room</h3>
-
-    <input
-      type="text"
-      id="roomCode"
-      class="room-input"
-      placeholder="Enter room code"
-      maxlength="6"
-      autocomplete="off"
-    >
-
-    <button class="play-button" onclick="joinRoom()">
-      JOIN ROOM
-    </button>
-
-    <div id="roomMessage" class="room-message"></div>
-
-    <p class="note">
-      Room interface preview. Online multiplayer requires a shared
-      realtime server connection before players can actually meet
-      and play together.
-    </p>
-
-  </section>
-
   <a href="index.html" class="back">← Back to Website</a>
-
-  <script>
-    function createRoom() {
-      const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-      let code = "";
-
-      for (let i = 0; i < 6; i++) {
-        code += characters.charAt(
-          Math.floor(Math.random() * characters.length)
-        );
-      }
-
-      document.getElementById("createdRoom").innerHTML =
-        "Your room code: <strong>" + code + "</strong>" +
-        "<br><button class='play-button' onclick=\"copyCode('" +
-        code + "')\">📋 COPY CODE</button>" +
-        "<p>Share this code with your friends.</p>";
-
-      document.getElementById("roomMessage").textContent = "";
-    }
-
-    function copyCode(code) {
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(code)
-          .then(() => {
-            alert("Room code copied: " + code);
-          })
-          .catch(() => {
-            prompt("Copy your room code:", code);
-          });
-      } else {
-        prompt("Copy your room code:", code);
-      }
-    }
-
-    function joinRoom() {
-      const code = document.getElementById("roomCode")
-        .value.trim().toUpperCase();
-
-      const message = document.getElementById("roomMessage");
-
-      if (!code) {
-        message.textContent = "Please enter a room code.";
-        return;
-      }
-
-      if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
-        message.textContent =
-          "Invalid code. Please enter a 6-character room code.";
-        return;
-      }
-
-      message.textContent =
-        "Code entered: " + code +
-        ". Online room connection is not set up yet. " +
-        "We need to connect Firebase Realtime Database next.";
-    }
-  </script>
 
 </body>
 </html>
