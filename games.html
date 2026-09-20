@@ -203,6 +203,7 @@
     </button>
 
     <div id="roomMessage" class="room-message"></div>
+    <div id="playersList" class="room-message"></div>
 
     <p class="note">
       Room interface preview. Online multiplayer requires a shared
@@ -270,6 +271,173 @@
         ". Online room connection is not set up yet. " +
         "We need to connect Firebase Realtime Database next.";
     }
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script>
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAq7fVYS7lzVbA-JZHRJ1ykiBgtPolGwqI",
+    authDomain: "omar-enline.firebaseapp.com",
+    databaseURL: "https://omar-enline-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "omar-enline",
+    storageBucket: "omar-enline.firebasestorage.app",
+    messagingSenderId: "522726372720",
+    appId: "1:522726372720:web:9b20978eb26dad14d4cbb5",
+    measurementId: "G-STGTR30N9D"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  let currentRoom = null;
+  let playerId = null;
+  let playerName = "";
+
+  const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+  function generateCode() {
+    let code = "";
+    for (let i = 0; i < 6; i++) {
+      code += characters[Math.floor(Math.random() * characters.length)];
+    }
+    return code;
+  }
+
+  function showMessage(text) {
+    document.getElementById("roomMessage").textContent = text;
+  }
+
+  async function createRoom() {
+    showMessage("Creating room...");
+    document.getElementById("playersList").textContent = "";
+
+    try {
+      let code;
+      let snapshot;
+
+      // Find an unused room code
+      do {
+        code = generateCode();
+        snapshot = await db.ref("rooms/" + code).get();
+      } while (snapshot.exists());
+
+      currentRoom = code;
+      playerId = db.ref("rooms/" + code + "/players").push().key;
+      playerName = prompt("Enter your player name:") || "Player 1";
+
+      const roomData = {
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+        players: {
+          [playerId]: {
+            name: playerName,
+            joinedAt: firebase.database.ServerValue.TIMESTAMP
+          }
+        }
+      };
+
+      await db.ref("rooms/" + code).set(roomData);
+
+      // Remove this player from the room when their connection ends
+      const playerRef = db.ref("rooms/" + code + "/players/" + playerId);
+      await playerRef.onDisconnect().remove();
+
+      document.getElementById("createdRoom").innerHTML =
+        "Your room code: <strong>" + code + "</strong>" +
+        "<br><button class='play-button' onclick=\"copyCode('" +
+        code + "')\">📋 COPY CODE</button>" +
+        "<p>Share this code with your friends.</p>";
+
+      showMessage("Room created! Waiting for friends...");
+      listenToPlayers(code);
+
+    } catch (error) {
+      console.error(error);
+      showMessage("Could not create room. Check Firebase Database rules and connection.");
+    }
+  }
+
+  async function joinRoom() {
+    const code = document.getElementById("roomCode")
+      .value.trim().toUpperCase();
+
+    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) {
+      showMessage("Enter a valid 6-character room code.");
+      return;
+    }
+
+    showMessage("Joining room...");
+    document.getElementById("playersList").textContent = "";
+
+    try {
+      const roomRef = db.ref("rooms/" + code);
+      const snapshot = await roomRef.get();
+
+      if (!snapshot.exists()) {
+        showMessage("Room not found. Check the code and try again.");
+        return;
+      }
+
+      currentRoom = code;
+      playerId = roomRef.child("players").push().key;
+      playerName = prompt("Enter your player name:") || "Player";
+
+      await roomRef.child("players/" + playerId).set({
+        name: playerName,
+        joinedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+
+      await roomRef.child("players/" + playerId).onDisconnect().remove();
+
+      document.getElementById("createdRoom").textContent =
+        "You joined room: " + code;
+
+      showMessage("Joined successfully! You're in the room.");
+      listenToPlayers(code);
+
+    } catch (error) {
+      console.error(error);
+      showMessage("Could not join room. Check Firebase Database rules and connection.");
+    }
+  }
+
+  function listenToPlayers(code) {
+    db.ref("rooms/" + code + "/players").on("value", snapshot => {
+      const list = document.getElementById("playersList");
+      const players = snapshot.val();
+
+      if (!players) {
+        list.textContent = "No players currently connected.";
+        return;
+      }
+
+      const names = Object.values(players).map(player => player.name);
+      list.innerHTML = "<strong>Players in room (" + names.length +
+        "):</strong><br>" +
+        names.map(name => "👤 " + escapeHTML(name)).join("<br>");
+    });
+  }
+
+  function escapeHTML(text) {
+    return String(text).replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[char]));
+  }
+
+  async function copyCode(code) {
+    try {
+      await navigator.clipboard.writeText(code);
+      alert("Room code copied: " + code);
+    } catch (error) {
+      prompt("Copy your room code:", code);
+    }
+  }
+</script>
+</body>
+</html>
   </script>
 
 </body>
